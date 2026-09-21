@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      # Bound to this PC only, so other devices on the network can't reach
+      # the database directly. Remove this whole block if you don't need
+      # to connect from tools like DBeaver or pgAdmin.
+      - "127.0.0.1:5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # "db" is the service name above. Containers find each other by name.
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      # Reachable from other devices at http://<this-PC-IP>:8501
+      - "8501:8501"
+
+volumes:
+  pgdata:

@@ -9,14 +9,10 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
 
-# Copy the rest of the app (main.py, db.py, pages/, etc.)
+# Copy the rest of the app
 COPY . .
 
 ENV PATH="/app/.venv/bin:$PATH"
-ENV DATABASE_PATH=/data/database.db
-
-RUN mkdir -p /data
-VOLUME /data
 
 EXPOSE 8501
 
