@@ -48,10 +48,13 @@ def init_db():
             # Seed default admin if no users exist
             cur.execute("SELECT COUNT(*) FROM admin_users")
             if cur.fetchone()[0] == 0:
+                admin_password = os.environ.get("ADMIN_PASSWORD")
+                if not admin_password:
+                    raise RuntimeError("ADMIN_PASSWORD must be set to create the first admin user.")
                 cur.execute(
                     "INSERT INTO admin_users (username, name, email, password_hash) "
                     "VALUES (%s, %s, %s, %s)",
-                    ("admin", "Admin User", "", hash_password("admin123")),
+                    ("admin", "Admin User", "", hash_password(admin_password)),
                 )
 
 
