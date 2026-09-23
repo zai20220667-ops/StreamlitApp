@@ -18,7 +18,24 @@ services:
       # Bound to this PC only, so other devices on the network can't reach
       # the database directly. Remove this whole block if you don't need
       # to connect from tools like DBeaver or pgAdmin.
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      # Makes Keycloak advertise this hostname in its discovery doc,
+      # regardless of whether it was reached as "keycloak" (from the app
+      # container) or "keycloak.local" (from your browser).
+      KC_HOSTNAME: keycloak.local
+      KC_HOSTNAME_PORT: "8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
 
   app:
     build: .
@@ -26,14 +43,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     environment:
       # "db" is the service name above. Containers find each other by name.
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
-      COOKIE_KEY: ${COOKIE_KEY:?Set COOKIE_KEY in .env}
+    extra_hosts:
+      # Lets the app container reach Keycloak via the same hostname your
+      # browser uses (see .env.example and README for the hosts-file step).
+      - "keycloak.local:host-gateway"
+    volumes:
+      - ./.streamlit/secrets.toml:/app/.streamlit/secrets.toml:ro
     ports:
       # Reachable from other devices at http://<this-PC-IP>:8501
       - "8501:8501"
 
 volumes:
   pgdata:
+  keycloak_data:

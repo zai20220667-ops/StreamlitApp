@@ -1,7 +1,7 @@
 import streamlit as st
 from db import insert_user
 from datetime import date
-if not st.session_state.get("authentication_status"):
+if not st.user.is_logged_in:
     st.warning("Please log in from the main page to access this page.")
     st.stop()
 st.title("WELCOME TO INPUT PAGE")

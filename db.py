@@ -1,5 +1,4 @@
 import os
-import bcrypt
 import psycopg
 
 # Connection string, e.g. postgresql://user:password@db:5432/appdb
@@ -18,23 +17,9 @@ def get_conn():
     return psycopg.connect(DATABASE_URL)
 
 
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-
 def init_db():
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS admin_users (
-                    id SERIAL PRIMARY KEY,
-                    username TEXT UNIQUE NOT NULL,
-                    name TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    password_hash TEXT NOT NULL
-                )
-            """)
-
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -44,34 +29,6 @@ def init_db():
                     gender TEXT NOT NULL
                 )
             """)
-
-            # Seed default admin if no users exist
-            cur.execute("SELECT COUNT(*) FROM admin_users")
-            if cur.fetchone()[0] == 0:
-                admin_password = os.environ.get("ADMIN_PASSWORD")
-                if not admin_password:
-                    raise RuntimeError("ADMIN_PASSWORD must be set to create the first admin user.")
-                cur.execute(
-                    "INSERT INTO admin_users (username, name, email, password_hash) "
-                    "VALUES (%s, %s, %s, %s)",
-                    ("admin", "Admin User", "", hash_password(admin_password)),
-                )
-
-
-def get_authenticator_credentials():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT username, name, email, password_hash FROM admin_users")
-            rows = cur.fetchall()
-
-    usernames_dict = {}
-    for row in rows:
-        usernames_dict[row[0]] = {
-            "name": row[1],
-            "email": row[2],
-            "password": row[3],
-        }
-    return {"usernames": usernames_dict}
 
 
 def insert_user(first_name, last_name, DOB, gender):

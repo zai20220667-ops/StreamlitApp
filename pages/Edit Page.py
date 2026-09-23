@@ -3,7 +3,7 @@ import pandas as pd
 from db import get_all_users, update_user, delete_user
 from datetime import datetime, date
 st.set_page_config(page_title="Edit Page", layout="wide")
-if not st.session_state.get("authentication_status"):
+if not st.user.is_logged_in:
     st.warning("Please log in from the main page to access this page.")
     st.stop()
 with st.expander("ℹ️ How to Use This Page", expanded=True):
